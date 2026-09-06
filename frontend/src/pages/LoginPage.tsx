@@ -1,3 +1,4 @@
+import axios, { type AxiosError } from "axios";
 import {
   ArrowLeft,
   BriefcaseBusiness,
@@ -43,6 +44,36 @@ const DEMO_ACCOUNTS: Record<
   },
 };
 
+function getLoginErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const axiosError = error as AxiosError;
+
+    if (axiosError.response?.status === 401) {
+      return "Invalid email or password.";
+    }
+
+    if (
+      axiosError.response?.status &&
+      axiosError.response.status >= 500
+    ) {
+      return "The server is temporarily unavailable. Please try again in a moment.";
+    }
+
+    if (
+      axiosError.code === "ECONNABORTED" ||
+      axiosError.code === "ETIMEDOUT"
+    ) {
+      return "The server is waking up. Please wait a moment and try again.";
+    }
+
+    if (!axiosError.response) {
+      return "Unable to connect to the server. Please try again in a moment.";
+    }
+  }
+
+  return "Something went wrong while signing in. Please try again.";
+}
+
 export default function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -69,8 +100,8 @@ export default function LoginPage() {
     try {
       await login({ email, password });
       navigate(redirectPath, { replace: true });
-    } catch {
-      setError("Invalid email or password.");
+    } catch (error) {
+      setError(getLoginErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
@@ -91,8 +122,8 @@ export default function LoginPage() {
       });
 
       navigate(redirectPath, { replace: true });
-    } catch {
-      setError("Unable to sign in with the demo account.");
+    } catch (error) {
+      setError(getLoginErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
@@ -161,6 +192,7 @@ export default function LoginPage() {
                 <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
                   <CheckCircle2 className="h-4 w-4" />
                 </div>
+
                 <div>
                   <p className="text-sm font-semibold">Connected workflows</p>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -173,6 +205,7 @@ export default function LoginPage() {
                 <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
                   <ShieldCheck className="h-4 w-4" />
                 </div>
+
                 <div>
                   <p className="text-sm font-semibold">Role-based security</p>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -245,7 +278,9 @@ export default function LoginPage() {
 
                     <button
                       type="button"
-                      onClick={() => setShowPassword((current) => !current)}
+                      onClick={() =>
+                        setShowPassword((current) => !current)
+                      }
                       className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 transition hover:text-slate-700"
                       aria-label={
                         showPassword ? "Hide password" : "Show password"
@@ -287,6 +322,7 @@ export default function LoginPage() {
                   <p className="text-sm font-semibold text-slate-900">
                     Try the demo
                   </p>
+
                   <p className="mt-1 text-xs leading-5 text-slate-500">
                     Choose a role to enter the platform with a preconfigured
                     demo account.
@@ -309,6 +345,7 @@ export default function LoginPage() {
                           <p className="text-sm font-semibold text-slate-900">
                             {account.label}
                           </p>
+
                           <p className="mt-0.5 text-xs text-slate-500">
                             {account.description}
                           </p>
